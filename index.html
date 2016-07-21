@@ -24,7 +24,7 @@
 
     <div class="container">
       <div class="header clearfix">
-        <h3 class="text-muted">Deploy your Django app with Heroku and Backblaze B2</h3>
+        <h3 class="text-muted">Deploy your Django app with Heroku and Backblaze B2.</h3>
       </div>
       <div class="marketing">
         <div id="introdution">
@@ -53,7 +53,7 @@
         </div>
         <div id="setup">
           <h3>The Setup</h3>
-          <p>Before getting to the fun part, we will to take care of a few steps to ensure that our app will be functional and secure.</p>
+          <p>Before getting to the fun part, we need to take care of a few steps to ensure that our app will be functional and secure.</p>
           <p>
             <p>
               If you haven't done so yet, head over to the <a href="https://www.heroku.com/">Heroku Website</a>, create an account, and install the <a href="https://toolbelt.heroku.com/">Heroku Toolbelt</a>.<br>
@@ -76,7 +76,7 @@ $ cd herokub2_club
 </code></pre>
 <!-- END CODE -->
 
-              Of course, you can choose whatever name you want.<br>We now need to install requirements for our app:
+              Of course, you can choose whatever name you want.<br><br>We now need to install requirements for our app:
 
 <!-- BEGIN CODE -->
 <pre class="language-bash"><code># In your terminal
@@ -92,7 +92,8 @@ $ python manage.py migrate
 
             </p>
             <p>
-              We now need to configure the app.<br>
+              <br>
+              Now let's configure the app.<br>
               First, in <strong>runtime.txt</strong> update the python version to <em>'python-3.5.2'</em>.
 
 <!-- BEGIN CODE -->
@@ -102,7 +103,7 @@ python-3.5.2
 <!-- END CODE -->
 
                We then need to provide our B2 account information.
-              But putting our them and our secret key directly in <strong>settings.py</strong> will make our app vulnerable to attacks. So we need to securely store them. The most common way to do this is to put that information in environment variables and then use the python 'os.environ' to access them in <strong>settings.py</strong>. For example in Linux systems place the following in your <strong>~/.bashrc</strong> file:
+              But putting them and our secret key directly in <strong>settings.py</strong> will make our app vulnerable to attacks. So we need to securely store them. The most common way to do this is to put that information in environment variables and then use the python 'os.environ' to access them in <strong>settings.py</strong>. For example in Linux systems place the following in your <strong>~/.bashrc</strong> file:
 
 <!-- BEGIN CODE -->
 <pre><code class="language-bash"># In .bashrc
