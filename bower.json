@@ -1,0 +1,16 @@
+{
+  "name": "hb2_tutorial",
+  "authors": [
+    "Amadou Ngom"
+  ],
+  "description": "A tutorial on how to quickly deploy django apps using Heroku and Backblaze B2 for user uploaded file management",
+  "main": "index.html",
+  "keywords": [
+    "Django",
+    "Backblaze",
+    "B2",
+    "Heroku"
+  ],
+  "license": "MIT",
+  "homepage": "index.html"
+}

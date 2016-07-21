@@ -1,0 +1,22 @@
+body{
+	font-size: 17px;
+}
+
+h3{
+	margin-top: 27px;
+}
+
+code{
+	text-shadow: 0;
+}
+
+#linkToNext{
+	font-size: 18px;
+	margin-top: 24px;
+	margin-bottom: 18px;
+}
+
+#linkToPrev{
+	font-size: 18px;
+	margin-bottom: 24px;
+}

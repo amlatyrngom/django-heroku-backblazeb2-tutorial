@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="imgs/py16.png">
+
+    <title>Deploy your django app with Heroku and Backblaze B2</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/narrow-jumbotron.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/custom.css">
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header clearfix">
+        <h3 class="text-muted">Deploy your Django app with Heroku and Backblaze B2</h3>
+      </div>
+      <div class="marketing">
+        <div id="introdution">
+          <h2>Introduction</h2>
+          <p>In this tutorial, we will develop a Django web app and quickly deploy it using <a href="https://www.heroku.com/">Heroku</a>. We will also use the <a href="https://www.backblaze.com/b2/cloud-storage.html">Backblaze B2 cloud storage</a> for user uploaded file management</p>
+          <p>
+            The app in and of itself is fairly simple. It's a website listing members of our top notch (fictional) HerokuB2 Club. Upon creation of a member, we will upload their profile picture to our cloud storage.
+            <div class="row">
+              <div class="col-sm-6 col-xs-12">
+                <figure>
+                  <img src="imgs/adding_member.png" alt="Adding Member" width="350"/>
+                  <figcaption style="text-align:center">Create a new member. Note the image upload field</figcaption>
+                </figure>
+              </div>
+              <div class="col-sm-6 col-xs-12">
+                <figure>
+                  <img src="imgs/added_member.png" alt="Added Member" width="350"/>
+                  <figcaption style="text-align:center">View all members</figcaption>
+                </figure>
+              </div>
+            </div>
+
+            Upon completion, you will have the ability to deploy fully functional and secure apps with user uploaded file management. The only prerequisite is the official Django tutorial (the one about polls).<br>
+            The source code can be found <a href>Here</a>.
+          </p>
+        </div>
+        <div id="setup">
+          <h3>The Setup</h3>
+          <p>Before getting to the fun part, we will to take care of a few steps to ensure that our app will be functional and secure.</p>
+          <p>
+            <p>
+              If you haven't done so yet, head over to the <a href="https://www.heroku.com/">Heroku Website</a>, create an account, and install the <a href="https://toolbelt.heroku.com/">Heroku Toolbelt</a>.<br>
+              Then visit the <a href="https://www.backblaze.com/b2/cloud-storage.html">Backblaze B2 website</a> and create an account. Once you're logged in:
+              <ol>
+                <li>Click on 'Buckets' (to your left).</li>
+                <li>Click on 'Show Account ID and Application Key' to record information that you'll later need.</li>
+                <li>Then create a Bucket. Finally record the name of your bucket and you Bucket ID</li>
+              </ol>
+            </p>
+            <p>
+              We will use the premade <a href="https://github.com/heroku/heroku-django-template">Django-Heroku template</a> to start our project. So from your terminal, type:
+
+<!-- BEGIN CODE -->
+<pre><code class=language-bash># In your terminal
+$ mkvirtualenv hb2club_venv     # You can use any virtualenv you want
+$ pip install django
+$ django-admin.py startproject --template=https://github.com/heroku/heroku-django-template/archive/master.zip --name=Procfile herokub2_club
+$ cd herokub2_club
+</code></pre>
+<!-- END CODE -->
+
+              Of course, you can choose whatever name you want.<br>We now need to install requirements for our app:
+
+<!-- BEGIN CODE -->
+<pre class="language-bash"><code># In your terminal
+$ pip install -r requirements.txt
+$ pip install pillow      # Required to handle uploaded images
+$ pip install django_b2storage    # To store uploaded images
+# disclaimer: I created this.
+$ pip freeze > requirements.txt # To specify dependencies to heroku
+$ python manage.py makemigrations # Initial Migrations
+$ python manage.py migrate
+</code></pre>
+<!-- END CODE -->
+
+            </p>
+            <p>
+              We now need to configure the app.<br>
+              First, in <strong>runtime.txt</strong> update the python version to <em>'python-3.5.2'</em>.
+
+<!-- BEGIN CODE -->
+<pre class="language-bash"><code># In runtime.txt
+python-3.5.2
+</code></pre>
+<!-- END CODE -->
+
+               We then need to provide our B2 account information.
+              But putting our them and our secret key directly in <strong>settings.py</strong> will make our app vulnerable to attacks. So we need to securely store them. The most common way to do this is to put that information in environment variables and then use the python 'os.environ' to access them in <strong>settings.py</strong>. For example in Linux systems place the following in your <strong>~/.bashrc</strong> file:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In .bashrc
+export HB2_SECRET_KEY='your_secret_key'
+export HB2_B2_BUCKET_NAME='your_bucket_name'
+export HB2_B2_BUCKET_ID='your_bucket_id'
+export HB2_B2_ACCOUNT_ID='your_account'
+export HB2_B2_APP_KEY='your_application_key'
+export HB2_ENV = 'dev' # To distinguish between development and production
+
+
+#Then in your terminal
+$ source ~/.bashrc
+</code></pre>
+<!-- END CODE -->
+
+            In Windows systems, just type 'environment variables' in your Windows search bar and then edit environment variables.<br>
+            We can now access these variables in <strong>settings.py</strong>:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In settings.py
+# Do not change any of these names
+SECRET_KEY = os.environ.get('HB2_SECRET_KEY')
+CURRENT_ENV = os.environ.get('HB2_ENV')
+B2_BUCKET_NAME = os.environ.get('HB2_B2_BUCKET_NAME')
+B2_BUCKET_ID = os.environ.get('HB2_B2_BUCKET_ID')
+B2_ACCOUNT_ID = os.environ.get('HB2_B2_ACCOUNT_ID')
+B2_APPLICATION_KEY = os.environ.get('HB2_B2_APP_KEY')
+DEFAULT_FILE_STORAGE = 'django_b2storage.backblaze_b2.B2Storage' # To be able to use B2
+
+DEBUG = False  # Should never be True in production
+if CURRENT_ENV=='dev':
+    DEBUG = True
+</code></pre>
+<!-- END CODE -->
+
+            </p>
+            <p>
+              Finally we need to make our app Heroku compliant. So first initiliaze the app:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In your terminal
+$ git init
+$ git add -A
+$ git commit -m "Initialize repository"
+
+$ heroku login    # Then enter your credentials
+$ heroku create
+</code></pre>
+<!-- END CODE -->
+
+              Because <strong>settings.py</strong> will still need these variables in production, we need to tell Heroku to store them. To do so:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In your terminal
+$ heroku config:set HB2_SECRET_KEY=$HB2_SECRET_KEY    # =%SECRET_KEY% in Windows
+$ heroku config:set HB2_ENV='prod' # To specify production environment
+$ heroku config:set HB2_B2_BUCKET_NAME=$HB2_B2_BUCKET_NAME
+$ heroku config:set HB2_B2_BUCKET_ID=$HB2_B2_BUCKET_ID
+$ heroku config:set HB2_B2_ACCOUNT_ID=$HB2_B2_ACCOUNT_ID
+$ heroku config:set HB2_B2_APP_KEY=$HB2_B2_APP_KEY
+</code></pre>
+<!-- END CODE -->
+
+            We can finally make our first deployment.
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In your terminal
+$ git push heroku master
+$ heroku run python manage.py makemigrations
+$ heroku run python manage.py migrate
+</code></pre>
+<!-- END CODE -->
+
+            <a type="button" class="btn btn-success pull-xs-right" href="actual_app.html" id="linkToNext">Next: Write the actual app <strong>&rsaquo;&rsaquo;&rsaquo;</strong></a>
+            </p>
+          </p>
+        </div>
+      </div>
+    </div> <!-- /container -->
+
+    <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/prism.js"></script>
+  </body>
+</html>

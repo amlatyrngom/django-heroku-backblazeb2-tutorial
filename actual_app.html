@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="imgs/py16.png">
+
+    <title>Deploy your django app with Heroku and Backblaze B2</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/narrow-jumbotron.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/custom.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header clearfix">
+        <h3 class="text-muted">Deploy your Django app with Heroku and Backblaze B2</h3>
+      </div>
+    <div class="marketing">
+      <div id="actualapp">
+        <a href="index.html" class="btn btn-success" id="linkToPrev"> <strong>&lsaquo;&lsaquo;&lsaquo;</strong> Back to the Setup</a>
+        <h2>The actual app</h2>
+        <p>
+          Now that we've securely configured our app, we can start coding. If you're familiar with django, or at least have read the official tutorial, the following will be pretty straightforward.
+        </p>
+        <h3>Wiring the app</h3>
+          <p>
+            Open your terminal, and start the app that will handle members:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In your terminal
+$ django-admin startapp members
+</code></pre>
+<!-- END CODE -->
+
+            Then register the app in <strong>settings.py:</strong>
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In settings.py
+INSTALLED_APPS = [
+...
+...
+'members.apps.MembersConfig',
+]
+</code></pre>
+<!-- END CODE -->
+
+            Then create <strong>members/urls.py</strong> and wire the views. So in <strong>herokub2_club/urls.py</strong>:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In herokub2_club/urls.py
+from django.conf.urls import include
+urlpatterns=[
+...,
+url(r'^', include("members.urls"))
+]
+</pre></code>
+<!-- END CODE -->
+
+          </p>
+        <h3>Creating the Model</h3>
+        <p>
+          In <strong>members/models.py:</strong>
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In members/models.py
+class Member(models.Model):
+    name = models.CharField(max_length=64)
+    short_bio = models.TextField(max_length=512) # Short Biography
+    picture = models.ImageField(upload_to="members", default="members/py.png")
+</pre></code>
+<!-- END CODE -->
+
+          With this setup, images will be uploaded to a folder named 'members' in your B2 bucket. When you fail to provide a picture,
+          the default picture will be used. It must be in the bucket BEFOREHAND. Within a template, we will be able to access the picture with <em>'member.picture.url'</em>.
+        </p>
+        <h3>Creating the Views</h3>
+        <p>
+          We will create two views. One for listing the members, and one for creating a new member. To list members, we will use a <a href="https://docs.djangoproject.com/en/1.9/ref/class-based-views/generic-display/#listview">ListView</a>. And to create a new member, we will use a <a href="https://docs.djangoproject.com/en/1.9/ref/class-based-views/generic-editing/#createview">CreateView</a>. So in <strong>members/views.py:</strong>
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In members/views.py
+from django.core.urlresolvers import reverse_lazy # similar to reverse
+from django.views.generic import ListView
+from django.views.generic.edit import CreateView
+
+from .models import Member
+
+class AllMembersView(ListView):
+    model = Member
+    template_name = "index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(AllMembersView, self).get_context_data(**kwargs)
+        context['title'] = 'All Members'
+        return context
+
+
+class NewMemberView(CreateView):
+    template_name = "new_member.html"
+    model = Member # Model of the object that will be created
+    fields = ['name', 'short_bio', 'picture']
+    success_url = reverse_lazy("members:all_members") # Redirect Url after creating the object
+
+    def get_context_data(self, **kwargs):
+        context = super(NewMemberView, self).get_context_data(**kwargs)
+        context['title'] = "New Member"
+        return context
+</pre></code>
+<!-- END CODE -->
+
+          Notice how we can do a lot with little code using generic views. The <strong>CreateView</strong> will automatically give us access to a form in our templates.
+        </p>
+        <h3>Wiring the Urls</h3>
+        <p>
+        We now need to link urls to each of our views. So in <strong>members/urls.py:</strong>
+
+<!-- BEGIN CODE -->
+<pre><code class="language-python"># In members/urls.py
+from django.conf.urls import url
+
+from . import views
+
+app_name = "members"
+urlpatterns=[
+  url(r'^$', views.AllMembersView.as_view(), name="all_members"),
+  url(r'^new_member/$', views.NewMemberView.as_view(), name="new_member"),
+]
+</pre></code>
+<!-- END CODE -->
+
+        </p>
+        <h3>Writing The Templates</h3>
+        <p>
+          I am sure you're not here for a class about web design. So I am just going to give you the essential parts. You can view the entire source code <a href="#">here</a>.
+          With that said:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-html"># In members/templates/index.html
+...
+&lt;ul class="list-group"&gt;
+{% for member in object_list %}
+&lt;li class="list-group-item"&gt;
+  ...
+    &lt;div class="col-sm-4"&gt;
+      &lt;!-- THIS is the important part --&gt;
+      &lt;img src="member.picture.url" alt="Member's picture"&gt;
+    &lt;/div&gt;
+  ...
+&lt;li&gt;
+{% endfor %}
+&lt;/ul&gt;
+
+...
+
+
+# Then in members/templates/new_member.html
+...
+&lt;!-- Don't forget enctype --&gt;
+&lt;form action="" enctype="multipart/form-data" method="post"&gt;
+{% csrf_token %}
+{{form.as_p}}
+&lt;button type="submit" class="btn btn-success"&gt;Submit&lt;\button&gt;
+&lt;\form&gt;
+...
+</pre></code>
+<!-- END CODE -->
+
+          Of course, I am using bootstrap with some custom javascript to make things prettier. But you don't have to. You NEED to specify <strong>enctype='multipart/form-data'</strong>. Otherwise the images won't get uploaded.
+        </p>
+        <h3>Deploying the app</h3>
+        <p>
+          If you haven't made any mistake, you're ready to deploy. So head over to the terminal and type:
+
+<!-- BEGIN CODE -->
+<pre><code class="language-bash"># In your terminal
+$ python manage.py makemigrations members
+$ python manage.py migrate
+$ git add -A
+$ git commit -m "Finish App"
+$ git push heroku master
+$ heroku run python manage.py makemigrations members
+$ heroku run python manage.py migrate
+</code></pre>
+<!-- END CODE -->
+
+          <strong>AND THAT'S IT!!!</strong>
+          You should now be able to view your website open the url heroku gives you. With my custom styles, it looks like:
+          <div class="row">
+            <div class="col-sm-6">
+              <figure>
+                <img src="imgs/adding_member.png" alt="Adding Member" width="360"/>
+              </figure>
+            </div>
+            <div class="col-sm-6">
+              <figure>
+                <img src="imgs/added_member.png" alt="Added Member" width="360"/>
+              </figure>
+            </div>
+          </div>
+        </p>
+      </div>
+      <div id='Conclusion'>
+        <h2>Conclusion</h2>
+        <p>
+        The tutorial ends here. With this simple app, we learned quite a lot. We've learned how to deploy our apps to Heroku. We've also seen how to store user files in B2 Cloud Storage, and how to display access them in our code. Finally we've seen some security best practices when it comes to storing sensitive information.
+        I really hope it will help you make great things.<br>
+        <strong>Thank you</strong>.
+        </p>
+      </div>
+    </div>
+    </div>
+    <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/prism.js"></script>
+  </body>
+</html>
